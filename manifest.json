@@ -10,7 +10,7 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://hh.ru/*",
+    "*://hh.*/*",
     "http://localhost/*"
   ],
   "options_page": "options.html",
@@ -27,8 +27,8 @@
     }
   ],
    "icons": {
-    "16": "images/icon16.png",
-    "48": "images/icon48.png",
-    "128": "images/icon128.png"
+    "16": "images/70x70.png",
+    "48": "images/70x70.png",
+    "128": "images/70x70.png"
   }
 }
