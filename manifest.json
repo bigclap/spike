@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "matches": ["https://hh.ru/resume/*"],
-      "js": ["content_script.js"]
+      "js": ["resume_parser.js", "content_script.js"]
     }
   ],
    "icons": {
