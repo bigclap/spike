@@ -1,47 +1,44 @@
 /**
  * @fileoverview Background script for the HH.ru Vacancy Scorer extension.
- * Handles API calls to the Qwen service.
+ * Handles API calls to the local vLLM service.
  */
 
 /**
- * Calls the Qwen API to evaluate a vacancy based on the user's resume.
+ * Calls the local vLLM API to evaluate a vacancy based on the user's resume.
  * @param {string} prompt - The vacancy description text.
  * @returns {Promise<string>} A promise that resolves with the content of the API response.
- * @throws {Error} If the API key or resume text is not set, or if the API call fails.
+ * @throws {Error} If the API key, model name, or resume text is not set, or if the API call fails.
  */
-async function callQwen(prompt) {
+async function callLlm(prompt) {
   return new Promise((resolve, reject) => {
-    chrome.storage.local.get(['apiKey', 'pdfResumeText'], async (result) => {
+    chrome.storage.local.get(['apiKey', 'resumeText', 'modelName'], async (result) => {
       try {
-        const { apiKey, pdfResumeText } = result;
+        const { apiKey, resumeText, modelName } = result;
 
         if (!apiKey) {
           throw new Error('API Key is not set.');
         }
-        if (!pdfResumeText) {
-          throw new Error('PDF resume text is not available.');
+        if (!resumeText) {
+          throw new Error('Resume text is not available.');
+        }
+        if (!modelName) {
+            throw new Error('Model name is not set.');
         }
 
-        const endpoint = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
-        const model = 'qwen-long-latest';
+        const endpoint = 'http://localhost/v1/chat/completions';
 
         const requestBody = {
-            model: model,
-            input: {
-                messages: [
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant."
-                    },
-                    {
-                        "role": "user",
-                        "content": `Based on the following resume text, evaluate the user's suitability for the vacancy described. Provide a score out of 10 and a brief justification.\n\nResume Text:\n${pdfResumeText}\n\nVacancy Description:\n${prompt}`
-                    }
-                ]
-            },
-            "parameters": {
-                "result_format": "message"
-            }
+            model: modelName,
+            messages: [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant."
+                },
+                {
+                    "role": "user",
+                    "content": `Based on the following resume text, evaluate the user's suitability for the vacancy described. Provide a score out of 10 and a brief justification.\n\nResume Text:\n${resumeText}\n\nVacancy Description:\n${prompt}`
+                }
+            ]
         };
 
         const response = await fetch(endpoint, {
@@ -60,13 +57,13 @@ async function callQwen(prompt) {
 
         const data = await response.json();
 
-        if (data.output && data.output.choices && data.output.choices[0].message.content) {
-            resolve(data.output.choices[0].message.content);
+        if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+            resolve(data.choices[0].message.content);
         } else {
             throw new Error('Unexpected API response structure.');
         }
       } catch (error) {
-        console.error('Error calling Qwen API:', error);
+        console.error('Error calling local vLLM API:', error);
         reject(error);
       }
     });
@@ -78,8 +75,8 @@ async function callQwen(prompt) {
  * Expects messages with an 'action' property.
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "callQwenApi") {
-        callQwen(request.prompt)
+    if (request.action === "callLlmApi") {
+        callLlm(request.prompt)
             .then(response => {
                 sendResponse({success: true, data: response});
             })
@@ -92,5 +89,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { callQwen };
+  module.exports = { callLlm };
 }

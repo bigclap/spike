@@ -1,10 +1,10 @@
 /**
  * @fileoverview Logic for the extension's options page.
- * Handles saving the Qwen API key and processing the uploaded PDF resume.
+ * Handles saving the local vLLM API key, model name, and resume text.
  */
 
 // We need a reference to the DOM elements.
-let apiKeyInput, saveKeyButton, uploadPdfInput, pdfStatus;
+let apiKeyInput, saveKeyButton, resumeTextInput, resumeStatus, modelNameInput;
 
 /**
  * Initializes the options page by setting up DOM element references and event listeners.
@@ -12,17 +12,12 @@ let apiKeyInput, saveKeyButton, uploadPdfInput, pdfStatus;
 function init() {
   apiKeyInput = document.getElementById('apiKey');
   saveKeyButton = document.getElementById('saveKey');
-  uploadPdfInput = document.getElementById('uploadPdf');
-  pdfStatus = document.getElementById('pdfStatus');
-
-  // Set the workerSrc for pdf.js from a CDN.
-  if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
-  }
+  resumeTextInput = document.getElementById('resumeText');
+  resumeStatus = document.getElementById('resumeStatus');
+  modelNameInput = document.getElementById('modelName');
 
   // Add event listeners
-  saveKeyButton.addEventListener('click', saveApiKey);
-  uploadPdfInput.addEventListener('change', handlePdfUpload);
+  saveKeyButton.addEventListener('click', saveData);
 
   // Load initial settings
   loadSettings();
@@ -30,62 +25,38 @@ function init() {
 
 
 /**
- * Loads the saved API key and resume file name from chrome.storage.local
+ * Loads the saved API key, model name, and resume text from chrome.storage.local
  * and populates the respective fields on the options page.
  */
 function loadSettings() {
-  chrome.storage.local.get(['apiKey', 'pdfResumeFileName'], (result) => {
+  chrome.storage.local.get(['apiKey', 'resumeText', 'modelName'], (result) => {
     if (result.apiKey) {
       apiKeyInput.value = result.apiKey;
     }
-    if (result.pdfResumeFileName) {
-      pdfStatus.textContent = `Saved resume: ${result.pdfResumeFileName}`;
+    if (result.resumeText) {
+      resumeTextInput.value = result.resumeText;
+      resumeStatus.textContent = 'Resume text is saved.';
+    }
+    if (result.modelName) {
+      modelNameInput.value = result.modelName;
     }
   });
 }
 
 /**
- * Saves the entered Qwen API key to chrome.storage.local.
+ * Saves the entered API key, model name, and resume text to chrome.storage.local.
  */
-function saveApiKey() {
+function saveData() {
   const apiKey = apiKeyInput.value;
-  if (apiKey) {
-    chrome.storage.local.set({ apiKey }, () => {
-      alert('API Key saved!');
+  const resumeText = resumeTextInput.value;
+  const modelName = modelNameInput.value;
+  if (apiKey && resumeText && modelName) {
+    chrome.storage.local.set({ apiKey, resumeText, modelName }, () => {
+      alert('API Key, model name, and resume text saved!');
+      resumeStatus.textContent = 'Resume text is saved.';
     });
   } else {
-    alert('Please enter an API Key.');
-  }
-}
-
-/**
- * Handles the PDF file upload. Reads the file, extracts the text content
- * using pdf.js, and saves it to chrome.storage.local.
- * @param {Event} event - The file input change event.
- */
-function handlePdfUpload(event) {
-  const file = event.target.files[0];
-  if (file && file.type === 'application/pdf') {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const typedarray = new Uint8Array(e.target.result);
-      pdfjsLib.getDocument(typedarray).promise.then(async (pdf) => {
-        let textContent = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const text = await page.getTextContent();
-          textContent += text.items.map(item => item.str).join(' ');
-        }
-
-        chrome.storage.local.set({ pdfResumeText: textContent, pdfResumeFileName: file.name }, () => {
-          pdfStatus.textContent = `Saved resume: ${file.name}`;
-          alert('PDF Resume processed and text saved!');
-        });
-      });
-    };
-    reader.readAsArrayBuffer(file);
-  } else {
-    alert('Please select a PDF file.');
+    alert('Please fill out all fields.');
   }
 }
 
@@ -97,5 +68,5 @@ if (typeof document !== 'undefined') {
 
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { init, loadSettings, saveApiKey, handlePdfUpload };
+  module.exports = { init, loadSettings, saveData };
 }
