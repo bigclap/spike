@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "HH.ru Vacancy Scorer",
+  "version": "1.0",
+  "description": "Analyzes hh.ru vacancies using the Qwen API.",
+  "permissions": [
+    "storage",
+    "scripting",
+    "downloads",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://hh.ru/*",
+    "https://dashscope.aliyuncs.com/*",
+    "https://dashscope-intl.aliyuncs.com/*"
+  ],
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "qwen_service.js"
+  },
+   "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+}

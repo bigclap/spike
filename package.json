@@ -1,0 +1,17 @@
+{
+  "name": "hh-qwen-extension",
+  "version": "1.0.0",
+  "description": "HH.ru Qwen Automation Extension",
+  "main": "background.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "setupFilesAfterEnv": ["./jest.setup.js"],
+    "testEnvironment": "jsdom"
+  }
+}

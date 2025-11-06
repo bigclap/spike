@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HH.ru Vacancy Scorer Settings</title>
+  <style>
+    body { font-family: sans-serif; padding: 10px; }
+    div { margin-bottom: 10px; }
+    label { display: block; margin-bottom: 5px; }
+    input[type="text"] { width: 300px; padding: 5px; }
+    button { padding: 8px 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Settings</h1>
+  <div>
+    <label for="apiKey">Qwen API Key:</label>
+    <input type="text" id="apiKey">
+    <button id="saveKey">Save Key</button>
+  </div>
+  <div>
+    <label for="uploadPdf">Upload PDF Resume:</label>
+    <input type="file" id="uploadPdf" accept="application/pdf">
+    <p id="pdfStatus"></p>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
