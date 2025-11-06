@@ -11,7 +11,7 @@
   ],
   "host_permissions": [
     "*://hh.*/*",
-    "http://localhost/*"
+    "*://localhost/*"
   ],
   "options_page": "options.html",
   "background": {
@@ -22,7 +22,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://hh.ru/resume/*"],
+      "matches": ["*://hh.ru/resume/*"],
       "js": ["resume_parser.js", "content_script.js"]
     }
   ],

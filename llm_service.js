@@ -8,9 +8,7 @@ let status = 'Stopped';
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'start') {
-    start();
-    status = 'Running';
-    sendResponse({ status });
+    start(sendResponse);
   } else if (request.action === 'stop') {
     isRunning = false;
     status = 'Stopped';
@@ -21,7 +19,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-async function start() {
+async function start(sendResponse) {
   isRunning = true;
   console.log('Starting the vacancy scoring process.');
 
@@ -68,6 +66,7 @@ async function start() {
         status = 'Finished';
     }
   }
+  sendResponse(status);
 }
 
 async function getScore(vacancyText) {
@@ -105,7 +104,7 @@ async function callLlm(prompt) {
         const response = await fetch(apiEndpoint, {
           method: 'POST',
           headers: {
-            'Authorization': `Basic ${credentials}`,
+            'Authorization': `Bearer ollama`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody)
