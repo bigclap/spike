@@ -1,4 +1,4 @@
-const { init, loadSettings, saveApiKey, handlePdfUpload } = require('./options.js');
+const { init, loadSettings, saveData } = require('./options.js');
 
 describe('Options Page Logic', () => {
 
@@ -6,16 +6,16 @@ describe('Options Page Logic', () => {
     // Set up our document body
     document.body.innerHTML = `
       <input id="apiKey" type="text">
+      <input id="modelName" type="text">
+      <textarea id="resumeText"></textarea>
       <button id="saveKey"></button>
-      <input id="uploadPdf" type="file">
-      <p id="pdfStatus"></p>
+      <p id="resumeStatus"></p>
     `;
 
     // Clear all mocks
     chrome.storage.local.get.mockClear();
     chrome.storage.local.set.mockClear();
     alert.mockClear();
-    pdfjsLib.getDocument.mockClear();
 
     // Initialize the script
     init();
@@ -25,73 +25,61 @@ describe('Options Page Logic', () => {
     // Simulate storage returning data
     chrome.storage.local.get.mock.calls[0][1]({
         apiKey: 'saved-key',
-        pdfResumeFileName: 'resume.pdf'
+        resumeText: 'My resume text.',
+        modelName: 'my-model'
     });
 
     expect(document.getElementById('apiKey').value).toBe('saved-key');
-    expect(document.getElementById('pdfStatus').textContent).toBe('Saved resume: resume.pdf');
+    expect(document.getElementById('resumeText').value).toBe('My resume text.');
+    expect(document.getElementById('modelName').value).toBe('my-model');
+    expect(document.getElementById('resumeStatus').textContent).toBe('Resume text is saved.');
   });
 
 
-  test('save button should save API key to storage', () => {
+  test('save button should save API key, model name, and resume text to storage', () => {
     const apiKeyInput = document.getElementById('apiKey');
+    const resumeTextInput = document.getElementById('resumeText');
+    const modelNameInput = document.getElementById('modelName');
 
     apiKeyInput.value = 'new-api-key';
+    resumeTextInput.value = 'New resume text.';
+    modelNameInput.value = 'new-model';
     // Manually call the function since the event listener is in the script
-    saveApiKey();
+    saveData();
 
     expect(chrome.storage.local.set).toHaveBeenCalledTimes(1);
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({ apiKey: 'new-api-key' }, expect.any(Function));
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ apiKey: 'new-api-key', resumeText: 'New resume text.', modelName: 'new-model' }, expect.any(Function));
 
     // The callback to alert should be called
     chrome.storage.local.set.mock.calls[0][1](); // Manually invoke the callback
-    expect(alert).toHaveBeenCalledWith('API Key saved!');
+    expect(alert).toHaveBeenCalledWith('API Key, model name, and resume text saved!');
+    expect(document.getElementById('resumeStatus').textContent).toBe('Resume text is saved.');
   });
 
   test('save button should alert if API key is empty', () => {
     document.getElementById('apiKey').value = '';
-    saveApiKey();
-    expect(alert).toHaveBeenCalledWith('Please enter an API Key.');
+    document.getElementById('resumeText').value = 'Some resume text.';
+    document.getElementById('modelName').value = 'some-model';
+    saveData();
+    expect(alert).toHaveBeenCalledWith('Please fill out all fields.');
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
   });
 
-
-  test('PDF upload should process file and save text', async () => {
-    const uploadInput = document.getElementById('uploadPdf');
-    const mockFile = new File(['dummy content'], 'test.pdf', { type: 'application/pdf' });
-
-    // Mock FileReader
-    const mockReader = {
-      readAsArrayBuffer: jest.fn(),
-      onload: null,
-      result: new ArrayBuffer(8)
-    };
-    global.FileReader = jest.fn(() => mockReader);
-
-    // Simulate a file selection
-    Object.defineProperty(uploadInput, 'files', {
-        value: [mockFile],
-    });
-
-    // Trigger the change event
-    const event = { target: uploadInput };
-    handlePdfUpload(event);
-
-    expect(mockReader.readAsArrayBuffer).toHaveBeenCalledWith(mockFile);
-
-    // Manually trigger onload
-    mockReader.onload({ target: { result: mockReader.result } });
-
-    // Wait for promises to resolve
-    await new Promise(process.nextTick);
-
-    expect(pdfjsLib.getDocument).toHaveBeenCalledTimes(1);
-
-    // Simulate the callback from set
-    chrome.storage.local.set.mock.calls[0][1]();
-    expect(alert).toHaveBeenCalledWith('PDF Resume processed and text saved!');
-    expect(document.getElementById('pdfStatus').textContent).toBe('Saved resume: test.pdf');
-
+  test('save button should alert if resume text is empty', () => {
+    document.getElementById('apiKey').value = 'some-key';
+    document.getElementById('resumeText').value = '';
+    document.getElementById('modelName').value = 'some-model';
+    saveData();
+    expect(alert).toHaveBeenCalledWith('Please fill out all fields.');
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
   });
 
+  test('save button should alert if model name is empty', () => {
+    document.getElementById('apiKey').value = 'some-key';
+    document.getElementById('resumeText').value = 'some-text';
+    document.getElementById('modelName').value = '';
+    saveData();
+    expect(alert).toHaveBeenCalledWith('Please fill out all fields.');
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  });
 });
