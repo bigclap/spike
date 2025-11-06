@@ -9,10 +9,11 @@ describe('LLM API Service', () => {
   });
 
   test('callLlm should make a fetch request with correct parameters', async () => {
-    // Mock storage to return an API key and resume text
+    // Mock storage to return a username, password, and other settings
     chrome.storage.local.get.mockImplementation((keys, callback) => {
       callback({
-        apiKey: 'test-api-key',
+        username: 'test-user',
+        password: 'test-password',
         resumeText: 'This is a resume.',
         modelName: 'test-model',
         apiEndpoint: 'http://localhost:11434/api/generate'
@@ -29,7 +30,8 @@ describe('LLM API Service', () => {
 
     expect(endpoint).toBe('http://localhost:11434/api/generate');
     expect(options.method).toBe('POST');
-    expect(options.headers['Authorization']).toBe('Bearer test-api-key');
+    const expectedAuth = `Basic ${btoa('test-user:test-password')}`;
+    expect(options.headers['Authorization']).toBe(expectedAuth);
     expect(body.model).toBe('test-model');
     expect(body.messages[1].content).toBe('Vacancy description');
   });
@@ -37,7 +39,8 @@ describe('LLM API Service', () => {
   test('callLlm should return the content from the API response', async () => {
      chrome.storage.local.get.mockImplementation((keys, callback) => {
       callback({
-        apiKey: 'test-api-key',
+        username: 'test-user',
+        password: 'test-password',
         resumeText: 'This is a resume.',
         modelName: 'test-model',
         apiEndpoint: 'http://localhost:11434/api/generate'
@@ -60,7 +63,8 @@ describe('LLM API Service', () => {
    test('callLlm should reject if fetch fails', async () => {
      chrome.storage.local.get.mockImplementation((keys, callback) => {
       callback({
-        apiKey: 'test-api-key',
+        username: 'test-user',
+        password: 'test-password',
         resumeText: 'This is a resume.',
         modelName: 'test-model',
         apiEndpoint: 'http://localhost:11434/api/generate'
@@ -75,7 +79,8 @@ describe('LLM API Service', () => {
    test('callLlm should reject if response is not ok', async () => {
      chrome.storage.local.get.mockImplementation((keys, callback) => {
       callback({
-        apiKey: 'test-api-key',
+        username: 'test-user',
+        password: 'test-password',
         resumeText: 'This is a resume.',
         modelName: 'test-model',
         apiEndpoint: 'http://localhost:11434/api/generate'
