@@ -16,17 +16,16 @@
   <div class="container">
     <h1>HH.ru Vacancy Scorer Options</h1>
     <div class="input-group">
+      <label for="apiEndpoint">Local LLM API Endpoint</label>
+      <input type="text" id="apiEndpoint" placeholder="e.g., http://localhost:11434/api/generate">
+    </div>
+    <div class="input-group">
       <label for="apiKey">Local vLLM API Key (Bearer Token)</label>
       <input type="text" id="apiKey" placeholder="Enter your API Key">
     </div>
     <div class="input-group">
       <label for="modelName">Model Name</label>
       <input type="text" id="modelName" value="Qwen/Qwen3-30B-A3B-Instruct-2507">
-    </div>
-    <div class="input-group">
-      <label for="resumeText">Your Resume Text</label>
-      <textarea id="resumeText" rows="15" placeholder="Paste your resume text here..."></textarea>
-      <div id="resumeStatus"></div>
     </div>
     <button id="saveKey">Save</button>
   </div>

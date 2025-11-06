@@ -1,0 +1,19 @@
+body {
+  font-family: sans-serif;
+  width: 250px;
+  padding: 10px;
+}
+
+.container {
+  text-align: center;
+}
+
+button {
+  margin: 5px;
+  padding: 10px 20px;
+}
+
+#status {
+  margin-top: 10px;
+  font-style: italic;
+}
