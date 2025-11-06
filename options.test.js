@@ -5,7 +5,8 @@ describe('Options Page Logic', () => {
   beforeEach(() => {
     // Set up our document body
     document.body.innerHTML = `
-      <input id="apiKey" type="text">
+      <input id="username" type="text">
+      <input id="password" type="password">
       <input id="modelName" type="text">
       <button id="saveKey"></button>
       <input id="apiEndpoint" type="text">
@@ -23,38 +24,53 @@ describe('Options Page Logic', () => {
   test('loadSettings should populate fields from storage', () => {
     // Simulate storage returning data
     chrome.storage.local.get.mock.calls[0][1]({
-        apiKey: 'saved-key',
+        username: 'saved-username',
+        password: 'saved-password',
         modelName: 'my-model',
         apiEndpoint: 'http://localhost/api'
     });
 
-    expect(document.getElementById('apiKey').value).toBe('saved-key');
+    expect(document.getElementById('username').value).toBe('saved-username');
+    expect(document.getElementById('password').value).toBe('saved-password');
     expect(document.getElementById('modelName').value).toBe('my-model');
     expect(document.getElementById('apiEndpoint').value).toBe('http://localhost/api');
   });
 
 
-  test('save button should save API key, model name, and API endpoint to storage', () => {
-    const apiKeyInput = document.getElementById('apiKey');
+  test('save button should save username, password, model name, and API endpoint to storage', () => {
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
     const modelNameInput = document.getElementById('modelName');
     const apiEndpointInput = document.getElementById('apiEndpoint');
 
-    apiKeyInput.value = 'new-api-key';
+    usernameInput.value = 'new-username';
+    passwordInput.value = 'new-password';
     modelNameInput.value = 'new-model';
     apiEndpointInput.value = 'http://new-endpoint';
     // Manually call the function since the event listener is in the script
     saveData();
 
     expect(chrome.storage.local.set).toHaveBeenCalledTimes(1);
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({ apiKey: 'new-api-key', modelName: 'new-model', apiEndpoint: 'http://new-endpoint' }, expect.any(Function));
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ username: 'new-username', password: 'new-password', modelName: 'new-model', apiEndpoint: 'http://new-endpoint' }, expect.any(Function));
 
     // The callback to alert should be called
     chrome.storage.local.set.mock.calls[0][1](); // Manually invoke the callback
     expect(alert).toHaveBeenCalledWith('Settings saved!');
   });
 
-  test('save button should alert if API key is empty', () => {
-    document.getElementById('apiKey').value = '';
+  test('save button should alert if username is empty', () => {
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = 'some-password';
+    document.getElementById('modelName').value = 'some-model';
+    document.getElementById('apiEndpoint').value = 'http://some-endpoint';
+    saveData();
+    expect(alert).toHaveBeenCalledWith('Please fill out all fields.');
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  });
+
+  test('save button should alert if password is empty', () => {
+    document.getElementById('username').value = 'some-username';
+    document.getElementById('password').value = '';
     document.getElementById('modelName').value = 'some-model';
     document.getElementById('apiEndpoint').value = 'http://some-endpoint';
     saveData();
@@ -63,7 +79,8 @@ describe('Options Page Logic', () => {
   });
 
   test('save button should alert if model name is empty', () => {
-    document.getElementById('apiKey').value = 'some-key';
+    document.getElementById('username').value = 'some-username';
+    document.getElementById('password').value = 'some-password';
     document.getElementById('modelName').value = '';
     document.getElementById('apiEndpoint').value = 'http://some-endpoint';
     saveData();
@@ -72,7 +89,8 @@ describe('Options Page Logic', () => {
   });
 
   test('save button should alert if api endpoint is empty', () => {
-    document.getElementById('apiKey').value = 'some-key';
+    document.getElementById('username').value = 'some-username';
+    document.getElementById('password').value = 'some-password';
     document.getElementById('modelName').value = 'some-model';
     document.getElementById('apiEndpoint').value = '';
     saveData();

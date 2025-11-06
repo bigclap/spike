@@ -85,11 +85,11 @@ async function getCoverLetter(vacancyText) {
 
 async function callLlm(prompt) {
   return new Promise((resolve, reject) => {
-    chrome.storage.local.get(['apiKey', 'modelName', 'apiEndpoint'], async (result) => {
+    chrome.storage.local.get(['username', 'password', 'modelName', 'apiEndpoint'], async (result) => {
       try {
-        const { apiKey, modelName, apiEndpoint } = result;
+        const { username, password, modelName, apiEndpoint } = result;
 
-        if (!apiKey || !modelName || !apiEndpoint) {
+        if (!username || !password || !modelName || !apiEndpoint) {
           throw new Error('All settings must be configured.');
         }
 
@@ -101,10 +101,11 @@ async function callLlm(prompt) {
           ]
         };
 
+        const credentials = btoa(`${username}:${password}`);
         const response = await fetch(apiEndpoint, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
+            'Authorization': `Basic ${credentials}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody)

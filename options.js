@@ -4,13 +4,14 @@
  */
 
 // We need a reference to the DOM elements.
-let apiKeyInput, saveKeyButton, modelNameInput, apiEndpointInput;
+let usernameInput, passwordInput, saveKeyButton, modelNameInput, apiEndpointInput;
 
 /**
  * Initializes the options page by setting up DOM element references and event listeners.
  */
 function init() {
-  apiKeyInput = document.getElementById('apiKey');
+  usernameInput = document.getElementById('username');
+  passwordInput = document.getElementById('password');
   saveKeyButton = document.getElementById('saveKey');
   modelNameInput = document.getElementById('modelName');
   apiEndpointInput = document.getElementById('apiEndpoint');
@@ -28,9 +29,12 @@ function init() {
  * and populates the respective fields on the options page.
  */
 function loadSettings() {
-  chrome.storage.local.get(['apiKey', 'modelName', 'apiEndpoint'], (result) => {
-    if (result.apiKey) {
-      apiKeyInput.value = result.apiKey;
+  chrome.storage.local.get(['username', 'password', 'modelName', 'apiEndpoint'], (result) => {
+    if (result.username) {
+      usernameInput.value = result.username;
+    }
+    if (result.password) {
+      passwordInput.value = result.password;
     }
     if (result.modelName) {
       modelNameInput.value = result.modelName;
@@ -42,14 +46,15 @@ function loadSettings() {
 }
 
 /**
- * Saves the entered API key, model name, and API endpoint to chrome.storage.local.
+ * Saves the entered username, password, model name, and API endpoint to chrome.storage.local.
  */
 function saveData() {
-  const apiKey = apiKeyInput.value;
+  const username = usernameInput.value;
+  const password = passwordInput.value;
   const modelName = modelNameInput.value;
   const apiEndpoint = apiEndpointInput.value;
-  if (apiKey && modelName && apiEndpoint) {
-    chrome.storage.local.set({ apiKey, modelName, apiEndpoint }, () => {
+  if (username && password && modelName && apiEndpoint) {
+    chrome.storage.local.set({ username, password, modelName, apiEndpoint }, () => {
       alert('Settings saved!');
     });
   } else {
