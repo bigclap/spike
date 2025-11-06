@@ -1,47 +1,107 @@
 /**
  * @fileoverview Background script for the HH.ru Vacancy Scorer extension.
- * Handles API calls to the local vLLM service.
+ * Handles API calls to the local vLLM service and orchestrates the application process.
  */
 
-/**
- * Calls the local vLLM API to evaluate a vacancy based on the user's resume.
- * @param {string} prompt - The vacancy description text.
- * @returns {Promise<string>} A promise that resolves with the content of the API response.
- * @throws {Error} If the API key, model name, or resume text is not set, or if the API call fails.
- */
+let isRunning = false;
+let status = 'Stopped';
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'start') {
+    start();
+    status = 'Running';
+    sendResponse({ status });
+  } else if (request.action === 'stop') {
+    isRunning = false;
+    status = 'Stopped';
+    sendResponse({ status });
+  } else if (request.action === 'getStatus') {
+    sendResponse({ status });
+  }
+  return true;
+});
+
+async function start() {
+  isRunning = true;
+  console.log('Starting the vacancy scoring process.');
+
+  // 1. Get the active tab
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) {
+    console.error('No active tab found.');
+    status = 'Error: No active tab';
+    return;
+  }
+
+  // 2. Get the resume text
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'getResumeText' });
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    const resumeText = response.resumeText;
+    await chrome.storage.local.set({ resumeText });
+    console.log('Resume text saved.');
+
+    // 3. TODO: Get the list of vacancies
+    const vacancies = [{description: 'A sample vacancy description.'}]; // Placeholder
+
+    // 4. Loop through vacancies and process them
+    for (const vacancy of vacancies) {
+        if (!isRunning) break;
+
+        const score = await getScore(vacancy.description);
+        console.log(`Vacancy score: ${score}`);
+
+        if (score >= 4) {
+            const coverLetter = await getCoverLetter(vacancy.description);
+            console.log(`Generated cover letter: ${coverLetter}`);
+            // TODO: Apply with the cover letter
+        }
+    }
+
+  } catch (error) {
+    console.error('Error during the process:', error);
+    status = `Error: ${error.message}`;
+  } finally {
+    if (isRunning) {
+        status = 'Finished';
+    }
+  }
+}
+
+async function getScore(vacancyText) {
+    const { resumeText } = await chrome.storage.local.get('resumeText');
+    const prompt = `Системная инструкция: Ты — HR-ассистент. Оцени соответствие резюме вакансии по шкале от 1 до 5. В ответе укажи только одну цифру без пояснений. \n\n### Резюме:\n${resumeText}\n\n### Вакансия:\n${vacancyText}\n\n### Оценка:`;
+    const response = await callLlm(prompt);
+    return parseInt(response.trim());
+}
+
+async function getCoverLetter(vacancyText) {
+    const { resumeText } = await chrome.storage.local.get('resumeText');
+    const prompt = `Системная инструкция: Ты — HR-ассистент. Напиши профессиональное и вежливое сопроводительное письмо на основе резюме для указанной вакансии. \n\n### Резюме:\n${resumeText}\n\n### Вакансия:\n${vacancyText}\n\n### Сопроводительное письмо:`;
+    return callLlm(prompt);
+}
+
 async function callLlm(prompt) {
   return new Promise((resolve, reject) => {
-    chrome.storage.local.get(['apiKey', 'resumeText', 'modelName'], async (result) => {
+    chrome.storage.local.get(['apiKey', 'modelName', 'apiEndpoint'], async (result) => {
       try {
-        const { apiKey, resumeText, modelName } = result;
+        const { apiKey, modelName, apiEndpoint } = result;
 
-        if (!apiKey) {
-          throw new Error('API Key is not set.');
+        if (!apiKey || !modelName || !apiEndpoint) {
+          throw new Error('All settings must be configured.');
         }
-        if (!resumeText) {
-          throw new Error('Resume text is not available.');
-        }
-        if (!modelName) {
-            throw new Error('Model name is not set.');
-        }
-
-        const endpoint = 'http://localhost/v1/chat/completions';
 
         const requestBody = {
-            model: modelName,
-            messages: [
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant."
-                },
-                {
-                    "role": "user",
-                    "content": `Based on the following resume text, evaluate the user's suitability for the vacancy described. Provide a score out of 10 and a brief justification.\n\nResume Text:\n${resumeText}\n\nVacancy Description:\n${prompt}`
-                }
-            ]
+          model: modelName,
+          messages: [
+            { "role": "system", "content": "You are a helpful assistant." },
+            { "role": "user", "content": prompt }
+          ]
         };
 
-        const response = await fetch(endpoint, {
+        const response = await fetch(apiEndpoint, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
@@ -70,24 +130,7 @@ async function callLlm(prompt) {
   });
 }
 
-/**
- * Listener for messages from other parts of the extension (e.g., content scripts).
- * Expects messages with an 'action' property.
- */
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "callLlmApi") {
-        callLlm(request.prompt)
-            .then(response => {
-                sendResponse({success: true, data: response});
-            })
-            .catch(error => {
-                sendResponse({success: false, error: error.message});
-            });
-        return true; // Indicates that the response is sent asynchronously
-    }
-});
-
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { callLlm };
+  module.exports = { callLlm, start, getScore, getCoverLetter };
 }

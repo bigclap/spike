@@ -17,6 +17,15 @@
   "background": {
     "service_worker": "llm_service.js"
   },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://hh.ru/resume/*"],
+      "js": ["content_script.js"]
+    }
+  ],
    "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",

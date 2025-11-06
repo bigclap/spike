@@ -1,10 +1,10 @@
 /**
  * @fileoverview Logic for the extension's options page.
- * Handles saving the local vLLM API key, model name, and resume text.
+ * Handles saving the local vLLM API key and model name.
  */
 
 // We need a reference to the DOM elements.
-let apiKeyInput, saveKeyButton, resumeTextInput, resumeStatus, modelNameInput;
+let apiKeyInput, saveKeyButton, modelNameInput, apiEndpointInput;
 
 /**
  * Initializes the options page by setting up DOM element references and event listeners.
@@ -12,9 +12,8 @@ let apiKeyInput, saveKeyButton, resumeTextInput, resumeStatus, modelNameInput;
 function init() {
   apiKeyInput = document.getElementById('apiKey');
   saveKeyButton = document.getElementById('saveKey');
-  resumeTextInput = document.getElementById('resumeText');
-  resumeStatus = document.getElementById('resumeStatus');
   modelNameInput = document.getElementById('modelName');
+  apiEndpointInput = document.getElementById('apiEndpoint');
 
   // Add event listeners
   saveKeyButton.addEventListener('click', saveData);
@@ -25,35 +24,33 @@ function init() {
 
 
 /**
- * Loads the saved API key, model name, and resume text from chrome.storage.local
+ * Loads the saved API key, model name, and API endpoint from chrome.storage.local
  * and populates the respective fields on the options page.
  */
 function loadSettings() {
-  chrome.storage.local.get(['apiKey', 'resumeText', 'modelName'], (result) => {
+  chrome.storage.local.get(['apiKey', 'modelName', 'apiEndpoint'], (result) => {
     if (result.apiKey) {
       apiKeyInput.value = result.apiKey;
     }
-    if (result.resumeText) {
-      resumeTextInput.value = result.resumeText;
-      resumeStatus.textContent = 'Resume text is saved.';
-    }
     if (result.modelName) {
       modelNameInput.value = result.modelName;
+    }
+    if (result.apiEndpoint) {
+      apiEndpointInput.value = result.apiEndpoint;
     }
   });
 }
 
 /**
- * Saves the entered API key, model name, and resume text to chrome.storage.local.
+ * Saves the entered API key, model name, and API endpoint to chrome.storage.local.
  */
 function saveData() {
   const apiKey = apiKeyInput.value;
-  const resumeText = resumeTextInput.value;
   const modelName = modelNameInput.value;
-  if (apiKey && resumeText && modelName) {
-    chrome.storage.local.set({ apiKey, resumeText, modelName }, () => {
-      alert('API Key, model name, and resume text saved!');
-      resumeStatus.textContent = 'Resume text is saved.';
+  const apiEndpoint = apiEndpointInput.value;
+  if (apiKey && modelName && apiEndpoint) {
+    chrome.storage.local.set({ apiKey, modelName, apiEndpoint }, () => {
+      alert('Settings saved!');
     });
   } else {
     alert('Please fill out all fields.');
