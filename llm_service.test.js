@@ -6,6 +6,7 @@ describe('LLM API Service', () => {
     // Clear mocks before each test
     chrome.storage.local.get.mockClear();
     fetch.mockClear();
+    console.error = jest.fn();
   });
 
   test('callLlm should make a fetch request with correct parameters', async () => {

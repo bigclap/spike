@@ -41,18 +41,22 @@ async function start(sendResponse) {
     await chrome.storage.local.set({ resumeText });
     console.log('Resume text saved.');
 
-    // 3. TODO: Get the list of vacancies
-    const vacancies = [{description: 'A sample vacancy description.'}]; // Placeholder
+    // 3. Get the list of vacancies
+    const vacancies = await getVacancyLinks(tab.id, tab.url);
+    console.log(`Found ${vacancies.length} vacancies.`);
 
     // 4. Loop through vacancies and process them
     for (const vacancy of vacancies) {
         if (!isRunning) break;
 
-        const score = await getScore(vacancy.description);
+        const vacancyText = await getVacancyText(vacancy);
+        if (!vacancyText) continue;
+
+        const score = await getScore(vacancyText);
         console.log(`Vacancy score: ${score}`);
 
         if (score >= 4) {
-            const coverLetter = await getCoverLetter(vacancy.description);
+            const coverLetter = await getCoverLetter(vacancyText);
             console.log(`Generated cover letter: ${coverLetter}`);
             // TODO: Apply with the cover letter
         }
@@ -69,11 +73,50 @@ async function start(sendResponse) {
   sendResponse(status);
 }
 
+async function getVacancyLinks(tabId, url) {
+    if (!url.includes('https://hh.ru/search/vacancy')) {
+        throw new Error('This is not a vacancy search page.');
+    }
+    return new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tabId, { action: 'getVacancies' }, (response) => {
+            if (chrome.runtime.lastError) {
+                return reject(new Error(chrome.runtime.lastError.message));
+            }
+            if (response.error) {
+                return reject(new Error(response.error));
+            }
+            resolve(response.vacancies);
+        });
+    });
+}
+
+async function getVacancyText(vacancyUrl) {
+    return new Promise(async (resolve, reject) => {
+        const tab = await chrome.tabs.create({ url: vacancyUrl, active: false });
+        chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+            if (info.status === 'complete' && tabId === tab.id) {
+                chrome.tabs.sendMessage(tab.id, { action: 'getVacancyContent' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                    } else if (response.error) {
+                        reject(new Error(response.error));
+                    } else {
+                        resolve(response.vacancyText);
+                    }
+                    chrome.tabs.remove(tab.id);
+                });
+                chrome.tabs.onUpdated.removeListener(listener);
+            }
+        });
+    });
+}
+
 async function getScore(vacancyText) {
     const { resumeText } = await chrome.storage.local.get('resumeText');
     const prompt = `Системная инструкция: Ты — HR-ассистент. Оцени соответствие резюме вакансии по шкале от 1 до 5. В ответе укажи только одну цифру без пояснений. \n\n### Резюме:\n${resumeText}\n\n### Вакансия:\n${vacancyText}\n\n### Оценка:`;
-    const response = await callLlm(prompt);
-    return parseInt(response.trim());
+    let response = await callLlm(prompt);
+    response = response.replace(/<think>[\s\S]*?<\/think>/, '').trim();
+    return parseInt(response);
 }
 
 async function getCoverLetter(vacancyText) {
@@ -104,7 +147,7 @@ async function callLlm(prompt) {
         const response = await fetch(apiEndpoint, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ollama`,
+            'Authorization': `Basic ${credentials}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody)
