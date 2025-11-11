@@ -8,7 +8,7 @@
     "build:js": "vite build --config vite.content.config.ts",
     "build:web": "tsc && vite build",
     "build:background:chrome": "vite build --config vite.chrome.background.config.ts",
-    "build:manifest:chrome": "powershell.exe -Command \"Copy-Item public/manifest.json dist/manifest.json\"",
+    "build:manifest:chrome": "node scripts/copy-manifest.cjs",
     "build": "npm-run-all build:js build:web",
     "build:chrome": "npm-run-all build:js build:background:chrome build:web build:manifest:chrome"
   },
