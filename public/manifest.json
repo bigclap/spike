@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "HH.ru Vacancy Scorer",
+  "version": "1.0",
+  "description": "Analyzes hh.ru vacancies using a local vLLM.",
+  "permissions": [
+    "storage",
+    "scripting",
+    "downloads",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "*://hh.ru/*",
+    "*://localhost/*"
+  ],
+  "options_page": "src/options/options.html",
+  "background": {
+    "service_worker": "src/background/llm_service.js"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://hh.ru/resume/*",
+        "*://hh.ru/search/vacancy*",
+        "*://hh.ru/vacancy/*"
+      ],
+      "js": [
+        "src/content/content_script.js"
+      ],
+      "css": [
+        "style.css"
+      ]
+    }
+  ],
+  "icons": {
+    "16": "assets/images/70x70.png",
+    "48": "assets/images/70x70.png",
+    "128": "assets/images/70x70.png"
+  }
+}
