@@ -6,11 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build:js": "vite build --config vite.content.config.ts",
-    "build:web": "tsc && vite build",
     "build:background:chrome": "vite build --config vite.chrome.background.config.ts",
     "build:manifest:chrome": "node scripts/copy-manifest.cjs",
-    "build": "npm-run-all build:js build:web",
-    "build:chrome": "npm-run-all build:js build:background:chrome build:web build:manifest:chrome"
+    "build": "npm-run-all build:js",
+    "build:chrome": "npm-run-all build:js build:background:chrome build:manifest:chrome"
   },
   "dependencies": {
     "react": "^18.2.0",
