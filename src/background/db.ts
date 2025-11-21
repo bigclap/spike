@@ -2,6 +2,8 @@
  * @fileoverview Database helper functions for interacting with chrome.storage.local.
  */
 
+import { VacancyData } from '../common/types';
+
 /**
  * Saves or updates a vacancy's score and status in chrome.storage.local.
  * @param {string} vacancyId - The unique identifier for the vacancy.
@@ -9,7 +11,7 @@
  * @param {string} status - The current status of the vacancy (e.g., 'analyzed', 'applied', 'error').
  * @returns {Promise<void>} A promise that resolves when the data has been successfully saved.
  */
-function setVacancyScore(vacancyId, score, status) {
+function setVacancyScore(vacancyId: string, score: number, status: 'analyzed' | 'applied' | 'error'): Promise<void> {
   return new Promise((resolve) => {
     const vacancyData = {
       [`vacancy_${vacancyId}`]: {
@@ -30,7 +32,7 @@ function setVacancyScore(vacancyId, score, status) {
  * @returns {Promise<object|undefined>} A promise that resolves with the vacancy data object
  * (containing score, status, and timestamp), or undefined if not found.
  */
-function getVacancyStatus(vacancyId) {
+function getVacancyStatus(vacancyId: string): Promise<VacancyData | undefined> {
   return new Promise((resolve) => {
     const key = `vacancy_${vacancyId}`;
     chrome.storage.local.get(key, (result) => {
@@ -39,7 +41,4 @@ function getVacancyStatus(vacancyId) {
   });
 }
 
-// Export functions for testing
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { setVacancyScore, getVacancyStatus };
-}
+export { setVacancyScore, getVacancyStatus };

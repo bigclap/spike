@@ -6,16 +6,16 @@
   "permissions": [
     "storage",
     "scripting",
-    "downloads",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
-    "*://hh.ru/*",
-    "*://localhost/*"
+    "*://hh.ru/*"
   ],
   "options_page": "src/options/options.html",
   "background": {
-    "service_worker": "src/background/llm_service.js"
+    "service_worker": "src/background/llm_service.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "src/popup/popup.html"
@@ -39,5 +39,15 @@
     "16": "assets/images/70x70.png",
     "48": "assets/images/70x70.png",
     "128": "assets/images/70x70.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

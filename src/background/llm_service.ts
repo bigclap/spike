@@ -3,19 +3,13 @@
  * Handles API calls to the local vLLM service and orchestrates the application process.
  */
 
-/**
- * @typedef {Object} Resume
- * @property {string} id - The unique ID of the resume.
- * @property {string} title - The title of the resume.
- * @property {string} text - The full text content of the resume.
- */
-
-import { ACTIONS } from '../common/actions.js';
+import { ACTIONS } from '../common/actions';
+import { Resume, StoredResumes } from '../common/types';
 
 let isRunning = false;
 let status = 'Stopped';
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
   switch (request.action) {
     case ACTIONS.START:
       start(sendResponse);
@@ -38,13 +32,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true; // Keep the message channel open for asynchronous responses.
 });
 
-/**
- * Saves a resume to chrome storage.
- * @param {object} request - The request object from the message listener.
- * @param {Resume} request.resume - The resume object to save.
- * @param {function} sendResponse - The callback function to send a response.
- */
-async function saveResume(request, sendResponse) {
+async function saveResume(request: { resume: Resume }, sendResponse: (response: { status: string }) => void): Promise<void> {
     status = 'Saving resume...';
     try {
         const { resume } = request;
@@ -52,8 +40,8 @@ async function saveResume(request, sendResponse) {
             throw new Error('Invalid resume data provided.');
         }
 
-        const data = await chrome.storage.local.get('resumes');
-        const resumes = data.resumes || {};
+        const data: { resumes?: StoredResumes } = await chrome.storage.local.get('resumes');
+        const resumes: StoredResumes = data.resumes || {};
 
         resumes[resume.id] = {
             title: resume.title,
@@ -63,21 +51,16 @@ async function saveResume(request, sendResponse) {
         await chrome.storage.local.set({ resumes });
         status = `Resume "${resume.title}" saved.`;
         console.log(`Resume ${resume.id} saved.`);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error saving resume:', error);
         status = `Error: ${error.message}`;
     }
     sendResponse({ status });
 }
 
-/**
- * Retrieves resume text by its ID, fetching it from the website if not in storage.
- * @param {string} resumeId - The ID of the resume to retrieve.
- * @returns {Promise<string>} The text content of the resume.
- */
-async function getResumeTextById(resumeId) {
-    const data = await chrome.storage.local.get('resumes');
-    const resumes = data.resumes || {};
+async function getResumeTextById(resumeId: string): Promise<string> {
+    const data: { resumes?: StoredResumes } = await chrome.storage.local.get('resumes');
+    const resumes: StoredResumes = data.resumes || {};
     if (resumes[resumeId]) {
         console.log(`Resume ${resumeId} found in storage.`);
         return resumes[resumeId].text;
@@ -89,7 +72,7 @@ async function getResumeTextById(resumeId) {
     const resumeUrl = `https://hh.ru/resume/${resumeId}`;
     const tab = await chrome.tabs.create({ url: resumeUrl, active: false });
 
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
         chrome.tabs.onUpdated.addListener(async function listener(tabId, info) {
             if (info.status === 'complete' && tabId === tab.id) {
                 chrome.tabs.onUpdated.removeListener(listener);
@@ -98,8 +81,8 @@ async function getResumeTextById(resumeId) {
                     if (response.error) throw new Error(response.error);
 
                     const { details } = response;
-                    const data = await chrome.storage.local.get('resumes');
-                    const resumes = data.resumes || {};
+                    const data: { resumes?: StoredResumes } = await chrome.storage.local.get('resumes');
+                    const resumes: StoredResumes = data.resumes || {};
                     resumes[details.id] = { title: details.title, text: details.text };
                     await chrome.storage.local.set({ resumes });
 
@@ -115,18 +98,13 @@ async function getResumeTextById(resumeId) {
     });
 }
 
-/**
- * Starts the main vacancy scoring process.
- * @param {function} sendResponse - The callback function to send a response.
- */
-async function start(sendResponse) {
+async function start(sendResponse: (response: { status: string }) => void): Promise<void> {
   isRunning = true;
   status = 'Running';
   console.log('Starting the vacancy scoring process.');
 
-  // 1. Get the active tab and resume ID from URL
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab) {
+  if (!tab || !tab.id || !tab.url) {
     console.error('No active tab found.');
     status = 'Error: No active tab';
     sendResponse({ status });
@@ -140,16 +118,12 @@ async function start(sendResponse) {
       throw new Error('No resume ID found in the URL (e.g., ?resume=RESUME_ID).');
     }
 
-    // 2. Get the resume text (fetch if necessary)
     const resumeText = await getResumeTextById(resumeId);
-
-    // 3. Get the list of vacancies
     const vacancies = await getVacancyLinks(tab.id, tab.url);
     console.log(`Found ${vacancies.length} vacancies.`);
     status = `Found ${vacancies.length} vacancies. Processing...`;
-    sendResponse({ status }); // Send intermediate status update
+    sendResponse({ status });
 
-    // 4. Loop through vacancies and process them
     for (const vacancy of vacancies) {
         if (!isRunning) break;
 
@@ -166,20 +140,14 @@ async function start(sendResponse) {
         }
     }
     status = 'Finished';
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error during the process:', error);
     status = `Error: ${error.message}`;
   }
   sendResponse({status});
 }
 
-/**
- * Gets a list of vacancy links from a vacancy search page.
- * @param {number} tabId - The ID of the tab to communicate with.
- * @param {string} url - The URL of the tab.
- * @returns {Promise<string[]>} A list of vacancy URLs.
- */
-async function getVacancyLinks(tabId, url) {
+async function getVacancyLinks(tabId: number, url: string): Promise<string[]> {
     if (!url.includes('hh.ru/search/vacancy')) {
         throw new Error('This is not a vacancy search page.');
     }
@@ -196,12 +164,7 @@ async function getVacancyLinks(tabId, url) {
     });
 }
 
-/**
- * Opens a vacancy URL in a new tab and extracts its text content.
- * @param {string} vacancyUrl - The URL of the vacancy to process.
- * @returns {Promise<string>} The text content of the vacancy page.
- */
-async function getVacancyText(vacancyUrl) {
+async function getVacancyText(vacancyUrl: string): Promise<string> {
     return new Promise(async (resolve, reject) => {
         const tab = await chrome.tabs.create({ url: vacancyUrl, active: false });
         chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
@@ -222,36 +185,19 @@ async function getVacancyText(vacancyUrl) {
     });
 }
 
-/**
- * Scores a vacancy against a resume using the LLM.
- * @param {string} vacancyText - The text of the vacancy.
- * @param {string} resumeText - The text of the resume.
- * @returns {Promise<number>} The score from 1 to 5.
- */
-async function getScore(vacancyText, resumeText) {
+async function getScore(vacancyText: string, resumeText: string): Promise<number> {
     const prompt = `Системная инструкция: Ты — HR-ассистент. Оцени соответствие резюме вакансии по шкале от 1 до 5. В ответе укажи только одну цифру без пояснений. \n\n### Резюме:\n${resumeText}\n\n### Вакансия:\n${vacancyText}\n\n### Оценка:`;
     let response = await callLlm(prompt);
     response = response.replace(/<think>[\s\S]*?<\/think>/, '').trim();
-    return parseInt(response);
+    return parseInt(response, 10);
 }
 
-/**
- * Generates a cover letter for a vacancy based on a resume.
- * @param {string} vacancyText - The text of the vacancy.
- * @param {string} resumeText - The text of the resume.
- * @returns {Promise<string>} The generated cover letter.
- */
-async function getCoverLetter(vacancyText, resumeText) {
+async function getCoverLetter(vacancyText: string, resumeText: string): Promise<string> {
     const prompt = `Системная инструкция: Ты — HR-ассистент. Напиши профессиональное и вежливое сопроводительное письмо на основе резюме для указанной вакансии. \n\n### Резюме:\n${resumeText}\n\n### Вакансия:\n${vacancyText}\n\n### Сопроводительное письмо:`;
     return callLlm(prompt);
 }
 
-/**
- * Makes a call to the configured local LLM API.
- * @param {string} prompt - The complete prompt to send to the LLM.
- * @returns {Promise<string>} The content of the LLM's response.
- */
-async function callLlm(prompt) {
+async function callLlm(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(['username', 'password', 'modelName', 'apiEndpoint'], async (result) => {
       try {
@@ -291,7 +237,7 @@ async function callLlm(prompt) {
         } else {
             throw new Error('Unexpected API response structure.');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error calling local vLLM API:', error);
         reject(error);
       }
@@ -299,8 +245,4 @@ async function callLlm(prompt) {
   });
 }
 
-// Export for testing
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { callLlm, start, getScore, getCoverLetter, saveResume };
-}
-
+export { callLlm };

@@ -1,7 +1,6 @@
-const { setVacancyScore, getVacancyStatus } = require('./db');
+import { setVacancyScore, getVacancyStatus } from '../src/background/db';
 
 describe('Database Helpers', () => {
-
   beforeEach(() => {
     // Clear all mocks before each test
     chrome.storage.local.get.mockClear();
@@ -21,7 +20,7 @@ describe('Database Helpers', () => {
 
   test('getVacancyStatus should retrieve data from chrome.storage.local', async () => {
     const mockData = { score: 9, status: 'applied', timestamp: '2023-01-01T00:00:00.000Z' };
-    chrome.storage.local.get.mockImplementation((keys, callback) => {
+    chrome.storage.local.get.mockImplementation((keys: string, callback: (items: { [key: string]: any; }) => void) => {
       callback({ 'vacancy_67890': mockData });
     });
 
@@ -33,16 +32,11 @@ describe('Database Helpers', () => {
   });
 
   test('getVacancyStatus should return undefined if data not found', async () => {
-     chrome.storage.local.get.mockImplementation((keys, callback) => {
+    chrome.storage.local.get.mockImplementation((keys: string, callback: (items: { [key: string]: any; }) => void) => {
       callback({}); // Simulate not found
     });
 
     const result = await getVacancyStatus('00000');
     expect(result).toBeUndefined();
   });
-
 });
-
-// Since db.js is not a module, we need to load it in a way that its functions are available.
-// A simple way is to use require, but we need to export the functions in db.js.
-// Let's modify db.js to be a module.
