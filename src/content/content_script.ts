@@ -4,23 +4,10 @@
  * It listens for messages from the background script or popup to perform DOM parsing.
  */
 
-/**
- * Actions for runtime messaging.
- * @enum {string}
- */
-const ACTIONS = {
-  GET_RESUME_DETAILS: 'getResumeDetails',
-  GET_VACANCIES: 'getVacancies',
-  GET_VACANCY_CONTENT: 'getVacancyContent',
-};
+import { ACTIONS } from '../common/actions';
+import { Resume } from '../common/types';
 
-/**
- * Parses the main text content from a resume page.
- * @param {Document} document - The document object of the page.
- * @returns {string} The formatted text content of the resume.
- * @throws {Error} If the resume text cannot be found.
- */
-function parseResume(document) {
+function parseResume(doc: Document): string {
   const sections = [
     { selector: '[data-qa="resume-block-title-position"]', title: 'Должность' },
     { selector: '[data-qa="title-description"]', title: 'Зарплата' },
@@ -36,7 +23,7 @@ function parseResume(document) {
   let resumeText = '';
 
   sections.forEach(section => {
-    const element = document.querySelector(section.selector);
+    const element = doc.querySelector<HTMLElement>(section.selector);
     if (element && element.textContent) {
       const text = element.textContent.replace(/\s+/g, ' ').trim();
       resumeText += `### ${section.title}\n${text}\n\n`;
@@ -50,17 +37,11 @@ function parseResume(document) {
   return resumeText;
 }
 
-/**
- * Parses detailed information from a resume page, including ID, title, and text.
- * @param {Document} document - The document object of the page.
- * @returns {{id: string, title: string, text: string}} An object containing the resume details.
- * @throws {Error} If the resume ID cannot be parsed from the URL.
- */
-function parseResumeDetails(document) {
-  const id = window.location.pathname.split('/').pop().split('?')[0];
-  const titleElement = document.querySelector('[data-qa="resume-title"]');
+function parseResumeDetails(doc: Document): Resume {
+  const id = window.location.pathname.split('/').pop()?.split('?')[0];
+  const titleElement = doc.querySelector<HTMLElement>('[data-qa="resume-title"]');
   const title = titleElement ? titleElement.innerText.trim() : 'Untitled Resume';
-  const text = parseResume(document);
+  const text = parseResume(doc);
 
   if (!id) {
     throw new Error('Could not parse resume ID from URL.');
@@ -69,31 +50,21 @@ function parseResumeDetails(document) {
   return { id, title, text };
 }
 
-/**
- * Parses vacancy links from a vacancy search page.
- * @param {Document} document - The document object of the page.
- * @returns {string[]} An array of vacancy URLs.
- */
-function parseVacancies(document) {
-  const links = Array.from(document.querySelectorAll('a.serp-item__title'));
+function parseVacancies(doc: Document): string[] {
+  const links = Array.from(doc.querySelectorAll<HTMLAnchorElement>('a.serp-item__title'));
   const vacancyLinks = links.map(a => a.href).filter(href => href.includes('hh.ru/vacancy'));
   return vacancyLinks;
 }
 
-/**
- * Parses the main description text from a single vacancy page.
- * @param {Document} document - The document object of the page.
- * @returns {string} The text content of the vacancy description.
- */
-function parseVacancyContent(document) {
-  const vacancyContent = document.querySelector('.vacancy-description').textContent;
+function parseVacancyContent(doc: Document): string {
+  const vacancyContent = doc.querySelector<HTMLElement>('.vacancy-description')?.textContent;
+  if (!vacancyContent) {
+    throw new Error('Could not find vacancy description on the page.');
+  }
   return vacancyContent;
 }
 
-/**
- * Listens for messages from other parts of the extension and routes them to the appropriate parser.
- */
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     try {
         switch (request.action) {
             case ACTIONS.GET_RESUME_DETAILS:
@@ -112,7 +83,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({ vacancyText });
                 break;
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
         sendResponse({ error: error.message });
     }

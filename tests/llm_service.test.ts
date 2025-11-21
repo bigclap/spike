@@ -1,30 +1,28 @@
-const { callLlm } = require('./llm_service');
+import { callLlm } from '../src/background/llm_service';
 
 describe('LLM API Service', () => {
-
   beforeEach(() => {
     // Clear mocks before each test
     chrome.storage.local.get.mockClear();
-    fetch.mockClear();
+    global.fetch.mockClear();
     console.error = jest.fn();
   });
 
   test('callLlm should make a fetch request with correct parameters', async () => {
     // Mock storage to return a username, password, and other settings
-    chrome.storage.local.get.mockImplementation((keys, callback) => {
+    chrome.storage.local.get.mockImplementation((keys: string[], callback: (items: { [key: string]: any; }) => void) => {
       callback({
         username: 'test-user',
         password: 'test-password',
-        resumeText: 'This is a resume.',
         modelName: 'test-model',
-        apiEndpoint: 'http://localhost:11434/api/generate'
+        apiEndpoint: 'http://localhost:11434/api/generate',
       });
     });
 
     await callLlm('Vacancy description');
 
-    expect(fetch).toHaveBeenCalledTimes(1);
-    const fetchCall = fetch.mock.calls[0];
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const fetchCall = global.fetch.mock.calls[0];
     const endpoint = fetchCall[0];
     const options = fetchCall[1];
     const body = JSON.parse(options.body);
@@ -38,13 +36,12 @@ describe('LLM API Service', () => {
   });
 
   test('callLlm should return the content from the API response', async () => {
-     chrome.storage.local.get.mockImplementation((keys, callback) => {
+    chrome.storage.local.get.mockImplementation((keys: string[], callback: (items: { [key: string]: any; }) => void) => {
       callback({
         username: 'test-user',
         password: 'test-password',
-        resumeText: 'This is a resume.',
         modelName: 'test-model',
-        apiEndpoint: 'http://localhost:11434/api/generate'
+        apiEndpoint: 'http://localhost:11434/api/generate',
       });
     });
 
@@ -53,49 +50,46 @@ describe('LLM API Service', () => {
   });
 
   test('callLlm should reject if settings are not configured', async () => {
-    chrome.storage.local.get.mockImplementation((keys, callback) => {
+    chrome.storage.local.get.mockImplementation((keys: string[], callback: (items: { [key: string]: any; }) => void) => {
       callback({});
     });
 
     await expect(callLlm('A vacancy')).rejects.toThrow('All settings must be configured.');
   });
 
-
-   test('callLlm should reject if fetch fails', async () => {
-     chrome.storage.local.get.mockImplementation((keys, callback) => {
+  test('callLlm should reject if fetch fails', async () => {
+    chrome.storage.local.get.mockImplementation((keys: string[], callback: (items: { [key: string]: any; }) => void) => {
       callback({
         username: 'test-user',
         password: 'test-password',
-        resumeText: 'This is a resume.',
         modelName: 'test-model',
-        apiEndpoint: 'http://localhost:11434/api/generate'
+        apiEndpoint: 'http://localhost:11434/api/generate',
       });
     });
 
-    fetch.mockImplementationOnce(() => Promise.reject(new Error('Network error')));
+    global.fetch.mockImplementationOnce(() => Promise.reject(new Error('Network error')));
 
     await expect(callLlm('A vacancy')).rejects.toThrow('Network error');
   });
 
-   test('callLlm should reject if response is not ok', async () => {
-     chrome.storage.local.get.mockImplementation((keys, callback) => {
+  test('callLlm should reject if response is not ok', async () => {
+    chrome.storage.local.get.mockImplementation((keys: string[], callback: (items: { [key: string]: any; }) => void) => {
       callback({
         username: 'test-user',
         password: 'test-password',
-        resumeText: 'This is a resume.',
         modelName: 'test-model',
-        apiEndpoint: 'http://localhost:11434/api/generate'
+        apiEndpoint: 'http://localhost:11434/api/generate',
       });
     });
 
-    fetch.mockImplementationOnce(() => Promise.resolve({
+    global.fetch.mockImplementationOnce(() =>
+      Promise.resolve({
         ok: false,
         status: 401,
-        text: () => Promise.resolve("Unauthorized")
-    }));
+        text: () => Promise.resolve('Unauthorized'),
+      } as Response)
+    );
 
     await expect(callLlm('A vacancy')).rejects.toThrow('API request failed with status 401: Unauthorized');
   });
-
-
 });
